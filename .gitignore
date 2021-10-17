@@ -1,0 +1,24 @@
+# Logs
+logs
+*.log
+
+# Dependency directories
+node_modules
+
+# Optional npm cache directory
+.npm
+
+# dotenv enviroment variables file
+.env
+.env.test
+.env.prod
+
+# build / generated output
+dist
+.build
+
+# serveless directories
+.serverless
+
+# ide config/directories
+.idea
