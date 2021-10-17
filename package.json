@@ -1,6 +1,6 @@
 {
   "name": "@sintese/nodets-amqp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Síntese NodeTS AMQP",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,6 +13,9 @@
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "scripts": {
+    "build": "tsc"
   },
   "files": ["dist/**/*"],
   "license": "MIT",
