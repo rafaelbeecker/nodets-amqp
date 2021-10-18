@@ -1,29 +1,22 @@
-import amqp from "amqplib";
 import sleep from "../common/sleep";
+import { ChannelConnection } from "./amqp-client";
 
 export type ProducerOptions = {
-  amqpUrl: string;
+  channelConnection: ChannelConnection;
   exchangeName: string;
   exchangeType: string;
   routingKey: string;
-  connectionTimeout: number;
 };
 
 class Producer {
   constructor(private readonly options: ProducerOptions) {}
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async publish(content: never) {
-    const connection = await amqp.connect(this.options.amqpUrl, {
-      timeout: this.options.connectionTimeout || 3000,
-    });
-
-    const channel = await connection.createChannel();
+  async publish(content: string): Promise<void> {
+    const { channel, connection } = this.options.channelConnection;
     await channel.assertExchange(
       this.options.exchangeName,
       this.options.exchangeType
     );
-
     channel.publish(
       this.options.exchangeName,
       this.options.routingKey,
@@ -32,7 +25,6 @@ class Producer {
         headers: { "x-attempt": 1 },
       }
     );
-
     await sleep(500);
     await connection.close();
   }

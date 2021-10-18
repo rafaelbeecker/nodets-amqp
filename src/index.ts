@@ -1,3 +1,2 @@
-import Consumer from "./amqp/consumer";
-import Producer from "./amqp/producer";
-export { Consumer, Producer };
+import { AmqpClient } from "./amqp/amqp-client";
+export default AmqpClient;

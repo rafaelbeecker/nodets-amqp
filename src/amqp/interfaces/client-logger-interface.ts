@@ -1,3 +1,3 @@
-export interface ConsumerLoggerInterface {
+export interface ClientLoggerInterface {
   error: (message: string, label?: string) => void;
 }

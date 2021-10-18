@@ -1,33 +1,30 @@
-import amqplib, { Channel, Connection, ConsumeMessage } from "amqplib";
-
+import { Channel, ConsumeMessage } from "amqplib";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import handler from "@sintese/nodejs-async-handler";
-import { ConsumerLoggerInterface } from "./interfaces/consumer-logger-interface";
+
+import { ClientLoggerInterface } from "./interfaces/client-logger-interface";
+import { ChannelConnection } from "./amqp-client";
 
 export type ConsumerOptions = {
-  amqpUrl: string;
+  channelConnection: ChannelConnection;
   prefetch?: number;
   isRetryEnabled?: boolean;
   retryMaxAttempts?: number;
   retryExchangeName?: string;
   retryRoutingKey?: string;
-  logger?: ConsumerLoggerInterface;
+  logger?: ClientLoggerInterface;
 };
 
 export class Consumer {
-  private connection: Connection;
-
   constructor(private readonly options: ConsumerOptions) {}
 
   async consume(
     queue: string,
     callback: (msg: ConsumeMessage) => void
   ): Promise<void> {
-    const channel = await this.createChannel({
-      url: this.options.amqpUrl,
-      prefetch: this.options.prefetch || 10,
-    });
+    const { channel } = this.options.channelConnection;
+    await channel.prefetch(this.options.prefetch || 10);
     await channel.consume(
       queue,
       async (msg: ConsumeMessage | null): Promise<void> => {
@@ -55,19 +52,6 @@ export class Consumer {
         channel.nack(msg, false, false);
       }
     );
-  }
-
-  async createChannel({
-    url,
-    prefetch = 10,
-  }: {
-    url: string;
-    prefetch: number;
-  }): Promise<Channel> {
-    this.connection = await amqplib.connect(url);
-    const channel = await this.connection.createChannel();
-    await channel.prefetch(prefetch);
-    return channel;
   }
 
   private async retry({
