@@ -16,7 +16,7 @@ export type ConsumerOptions = {
   logger?: ClientLoggerInterface;
 };
 
-export class Consumer {
+class Consumer {
   constructor(private readonly options: ConsumerOptions) {}
 
   async consume(

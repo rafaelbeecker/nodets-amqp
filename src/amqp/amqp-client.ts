@@ -33,7 +33,7 @@ type CreateChannelConnectionOptions = {
   timeout: number;
 };
 
-export class AmqpClient {
+class AmqpClient {
   constructor(private readonly options: CreateClientOptions) {}
 
   async createProducer(options: CreateProducerOptions): Promise<Producer> {
@@ -62,3 +62,4 @@ export class AmqpClient {
     return { channel, connection };
   }
 }
+export default AmqpClient;
