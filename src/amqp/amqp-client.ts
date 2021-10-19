@@ -48,6 +48,7 @@ class AmqpClient {
   async createConsumer(options: CreateConsumerOptions): Promise<Consumer> {
     return new Consumer({
       ...options,
+      logger: this.options.logger,
       channelConnection: await this.createChannelConnection({
         timeout: this.options.connectionTimeout,
       }),
