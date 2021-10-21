@@ -1,5 +1,5 @@
-import sleep from "../common/sleep";
 import { ChannelConnection } from "./amqp-client";
+import { Connection } from "amqplib";
 
 export type ProducerOptions = {
   channelConnection: ChannelConnection;
@@ -12,7 +12,7 @@ class Producer {
   constructor(private readonly options: ProducerOptions) {}
 
   async publish(content: string): Promise<void> {
-    const { channel, connection } = this.options.channelConnection;
+    const { channel } = this.options.channelConnection;
     await channel.assertExchange(
       this.options.exchangeName,
       this.options.exchangeType
@@ -25,8 +25,10 @@ class Producer {
         headers: { "x-attempt": 1 },
       }
     );
-    await sleep(500);
-    await connection.close();
+  }
+
+  get connection(): Connection {
+    return this.options.channelConnection.connection;
   }
 }
 
