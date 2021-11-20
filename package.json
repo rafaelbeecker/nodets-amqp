@@ -1,12 +1,12 @@
 {
   "name": "@sintese/nodets-amqp",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Síntese NodeTS AMQP",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rafaelbeecker-typs/nodets-amqp"
+    "url": "git+https://github.com/martios/nodets-amqp"
   },
   "keywords": [
     "nodejs",
@@ -26,9 +26,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/rafaelbeecker-typs/nodets-amqp/issues"
+    "url": "https://github.com/martios/nodets-amqp/issues"
   },
-  "homepage": "https://github.com/rafaelbeecker-typs/nodets-amqp#readme",
+  "homepage": "https://github.com/martios/nodets-amqp#readme",
   "devDependencies": {
     "@types/node": "^16.9.1",
     "@typescript-eslint/eslint-plugin": "^4.31.0",
