@@ -1,20 +1,11 @@
 import { Channel, ConsumeMessage } from "amqplib";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import handler from "@sintese/nodejs-async-handler";
 
-import { ClientLoggerInterface } from "./interfaces/client-logger-interface";
-import { ChannelConnection } from "./amqp-client";
-
-export type ConsumerOptions = {
-  channelConnection: ChannelConnection;
-  prefetch?: number;
-  isRetryEnabled?: boolean;
-  retryMaxAttempts?: number;
-  retryExchangeName?: string;
-  retryRoutingKey?: string;
-  logger?: ClientLoggerInterface;
-};
+import {
+  ClientLoggerInterface,
+  ConsumerOptions,
+} from "./interfaces/client-logger-interface";
+import MessageHeaders from "./common/message-headers";
 
 class Consumer {
   constructor(private readonly options: ConsumerOptions) {}
@@ -30,26 +21,38 @@ class Consumer {
       async (msg: ConsumeMessage | null): Promise<void> => {
         if (!msg) return;
 
-        const [err] = await handler(async () => callback(msg));
+        const attempt = msg?.properties?.headers?.["x-attempt"] || 1;
+        if (this.options.isRetryEnabled) {
+          this.logger.info(
+            `[retry][attempt:${attempt}]: started msg reprocessing`
+          );
+        }
+
+        const [err] = (await handler(async () => callback(msg))) as [
+          Error,
+          unknown
+        ];
         if (!err) {
           channel.ack(msg);
           return;
         }
 
-        const attempt = msg?.properties?.headers?.["x-attempt"] || 1;
-        if (
-          this.options.isRetryEnabled &&
-          attempt <= (this.options.retryMaxAttempts || 1)
-        ) {
-          this.options.logger &&
-            this.options.logger.error(`[attempt:${attempt}]: ${err.message}`);
-          await this.retry({ channel: channel, msg });
+        if (!this.options.isRetryEnabled) {
+          channel.nack(msg, false, false);
+          this.logger.error(`[discard]: ${err.message}`);
           return;
         }
 
-        this.options.logger &&
-          this.options.logger.error(`[discard]: ${err.message}`);
-        channel.nack(msg, false, false);
+        if (attempt >= (this.options.retryMaxAttempts || 1)) {
+          this.logger.error(`[discard][attempt:${attempt}]: ${err.message}`);
+          channel.nack(msg, false, false);
+          return;
+        }
+
+        this.logger.error(
+          `[retry][attempt:${attempt}]: enqueuing retry ${err.message}`
+        );
+        await this.retry({ channel: channel, msg });
       }
     );
   }
@@ -64,7 +67,14 @@ class Consumer {
     if (!this.options.retryExchangeName || !this.options.retryRoutingKey)
       return;
 
-    const attempt = (msg?.properties?.headers?.["x-attempt"] || 0) + 1;
+    const header = new MessageHeaders(msg);
+    const attempt = ((header.getHeader("x-attempt") as number) || 1) + 1;
+
+    const headers = (this.options.retryHeaders || [])?.reduce(
+      (acc: { [key: string]: unknown }, itn: string) =>
+        header.getHeader(itn) ? { [itn]: header.getHeader(itn) } : acc,
+      {}
+    );
 
     channel.ack(msg);
     channel.publish(
@@ -73,11 +83,16 @@ class Consumer {
       Buffer.from(msg.content?.toString()),
       {
         headers: {
+          ...headers,
           "x-attempt": attempt,
           "x-delay": 1000 * 10 * attempt,
         },
       }
     );
+  }
+
+  get logger(): ClientLoggerInterface {
+    return this.options.logger;
   }
 }
 

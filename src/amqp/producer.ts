@@ -1,5 +1,4 @@
 import { ChannelConnection } from "./amqp-client";
-import { Connection } from "amqplib";
 
 export type ProducerOptions = {
   channelConnection: ChannelConnection;
@@ -11,7 +10,10 @@ export type ProducerOptions = {
 class Producer {
   constructor(private readonly options: ProducerOptions) {}
 
-  async publish(content: string): Promise<void> {
+  async publish(
+    content: string,
+    headers: { [key: string]: unknown } = {}
+  ): Promise<void> {
     const { channel } = this.options.channelConnection;
     await channel.assertExchange(
       this.options.exchangeName,
@@ -22,13 +24,12 @@ class Producer {
       this.options.routingKey,
       Buffer.from(content),
       {
-        headers: { "x-attempt": 1 },
+        headers: {
+          ...headers,
+          "x-attempt": 1,
+        },
       }
     );
-  }
-
-  get connection(): Connection {
-    return this.options.channelConnection.connection;
   }
 }
 

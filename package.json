@@ -44,6 +44,7 @@
   "dependencies": {
     "@sintese/nodejs-async-handler": "^1.0.2",
     "@types/amqplib": "^0.8.2",
-    "amqplib": "^0.8.0"
+    "amqplib": "^0.8.0",
+    "ansi-regex": ">=5.0.1"
   }
 }

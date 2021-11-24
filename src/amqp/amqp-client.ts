@@ -12,7 +12,7 @@ export type ChannelConnection = {
 export type CreateClientOptions = {
   amqpUrl: string;
   connectionTimeout: number;
-  logger?: ClientLoggerInterface;
+  logger: ClientLoggerInterface;
 };
 
 export type CreateProducerOptions = {
