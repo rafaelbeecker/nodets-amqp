@@ -50,7 +50,7 @@ class Consumer {
         }
 
         this.logger.error(
-          `[retry][attempt:${attempt}]: enqueuing retry ${err.message}`
+          `[retry][attempt:${attempt}]: (enqueuing retry) ${err.message}`
         );
         await this.retry({ channel: channel, msg });
       }
