@@ -37,12 +37,23 @@ class Consumer {
           return;
         }
 
+        // 1. A mensagem é reprocessada apenas se o retry estiver habilitado
         if (!this.options.isRetryEnabled) {
           channel.nack(msg, false, false);
           this.logger.error(`[discard]: ${err.message}`);
           return;
         }
 
+        // 2. O retryCheck callback (opcional) verifica se é permitido continuar com o retry
+        if (
+          typeof this.options.retryCheck === "function" &&
+          !(await this.options.retryCheck(err))
+        ) {
+          this.logger.error(`[retry-check][discard]: ${err.message}`);
+          return;
+        }
+
+        // 3. O incremental de tentativas é controlado a partir de um limite máximo
         if (attempt >= (this.options.retryMaxAttempts || 1)) {
           this.logger.error(`[discard][attempt:${attempt}]: ${err.message}`);
           channel.nack(msg, false, false);
@@ -52,23 +63,35 @@ class Consumer {
         this.logger.error(
           `[retry][attempt:${attempt}]: (enqueuing retry) ${err.message}`
         );
-        await this.retry({ channel, msg, err });
+
+        if (!this.options.retryExchangeName || !this.options.retryRoutingKey)
+          return;
+
+        // 4. O envio do retry trata-se de uma republicação da mensagem
+        await this.retry({
+          channel,
+          retryExchangeName: this.options.retryExchangeName,
+          retryRoutingKey: this.options.retryRoutingKey,
+          msg,
+          err,
+        });
       }
     );
   }
 
   private async retry({
     channel,
+    retryExchangeName,
+    retryRoutingKey,
     msg,
     err,
   }: {
     channel: Channel;
+    retryExchangeName: string;
+    retryRoutingKey: string;
     msg: ConsumeMessage;
     err: Error;
   }): Promise<void> {
-    if (!this.options.retryExchangeName || !this.options.retryRoutingKey)
-      return;
-
     const header = new MessageHeaders(msg);
     const attempt = ((header.getHeader("x-attempt") as number) || 1) + 1;
 
@@ -80,8 +103,8 @@ class Consumer {
 
     channel.ack(msg);
     channel.publish(
-      this.options.retryExchangeName,
-      this.options.retryRoutingKey,
+      retryExchangeName,
+      retryRoutingKey,
       Buffer.from(msg.content?.toString()),
       {
         headers: {
