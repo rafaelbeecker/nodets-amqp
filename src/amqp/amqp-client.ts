@@ -28,6 +28,7 @@ export type CreateConsumerOptions = {
   retryExchangeName?: string;
   retryRoutingKey?: string;
   retryHeaders?: string[];
+  retryDelay?: number | ((err: Error) => Promise<number>);
 };
 
 type CreateChannelConnectionOptions = {

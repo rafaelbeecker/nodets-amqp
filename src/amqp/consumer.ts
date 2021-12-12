@@ -52,7 +52,7 @@ class Consumer {
         this.logger.error(
           `[retry][attempt:${attempt}]: (enqueuing retry) ${err.message}`
         );
-        await this.retry({ channel: channel, msg });
+        await this.retry({ channel, msg, err });
       }
     );
   }
@@ -60,9 +60,11 @@ class Consumer {
   private async retry({
     channel,
     msg,
+    err,
   }: {
     channel: Channel;
     msg: ConsumeMessage;
+    err: Error;
   }): Promise<void> {
     if (!this.options.retryExchangeName || !this.options.retryRoutingKey)
       return;
@@ -85,10 +87,20 @@ class Consumer {
         headers: {
           ...headers,
           "x-attempt": attempt,
-          "x-delay": 1000 * 10 * attempt,
+          "x-delay": await this.calcRetryDelay(attempt, err),
         },
       }
     );
+  }
+
+  private async calcRetryDelay(attempt: number, err: Error): Promise<number> {
+    if (typeof this.options.retryDelay === "function") {
+      return this.options.retryDelay(err);
+    }
+    if (typeof this.options.retryDelay === "number") {
+      return this.options.retryDelay;
+    }
+    return 1000 * 10 * attempt;
   }
 
   get logger(): ClientLoggerInterface {

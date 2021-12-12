@@ -14,4 +14,5 @@ export interface ConsumerOptions {
   retryRoutingKey?: string;
   retryHeaders?: string[];
   logger: ClientLoggerInterface;
+  retryDelay?: number | ((err: Error) => Promise<number>);
 }
