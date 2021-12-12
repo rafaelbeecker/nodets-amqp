@@ -1,11 +1,9 @@
-import { ChannelConnection } from "./amqp-client";
+import { ChannelConnection } from "./channel";
+import { CreateProducerOptions } from "./amqp-client";
 
-export type ProducerOptions = {
+export interface ProducerOptions extends CreateProducerOptions {
   channelConnection: ChannelConnection;
-  exchangeName: string;
-  exchangeType: string;
-  routingKey: string;
-};
+}
 
 class Producer {
   constructor(private readonly options: ProducerOptions) {}

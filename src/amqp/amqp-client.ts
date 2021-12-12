@@ -2,12 +2,8 @@ import amqp, { Channel, Connection } from "amqplib";
 
 import Producer from "./producer";
 import Consumer from "./consumer";
-import { ClientLoggerInterface } from "./interfaces/client-logger-interface";
-
-export type ChannelConnection = {
-  connection: Connection;
-  channel: Channel;
-};
+import { ChannelConnection } from "./channel";
+import { ClientLoggerInterface } from "./logger";
 
 export type CreateClientOptions = {
   amqpUrl: string;
@@ -32,10 +28,6 @@ export type CreateConsumerOptions = {
   retryCheck?: (err: Error) => Promise<boolean>;
 };
 
-type CreateChannelConnectionOptions = {
-  timeout: number;
-};
-
 class AmqpClient {
   constructor(private readonly options: CreateClientOptions) {}
 
@@ -58,9 +50,9 @@ class AmqpClient {
     });
   }
 
-  private async createChannelConnection(
-    options: CreateChannelConnectionOptions
-  ): Promise<ChannelConnection> {
+  private async createChannelConnection(options: {
+    timeout: number;
+  }): Promise<ChannelConnection> {
     const connection = await amqp.connect(this.options.amqpUrl, options);
     const channel = await connection.createChannel();
     return { channel, connection };

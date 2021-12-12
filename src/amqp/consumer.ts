@@ -1,11 +1,15 @@
 import { Channel, ConsumeMessage } from "amqplib";
 import handler from "@sintese/nodejs-async-handler";
 
-import {
-  ClientLoggerInterface,
-  ConsumerOptions,
-} from "./interfaces/client-logger-interface";
-import MessageHeaders from "./common/message-headers";
+import MessageHeaders from "./message-headers";
+import { ChannelConnection } from "./channel";
+import { ClientLoggerInterface } from "./logger";
+import { CreateConsumerOptions } from "./amqp-client";
+
+export interface ConsumerOptions extends CreateConsumerOptions {
+  channelConnection: ChannelConnection;
+  logger: ClientLoggerInterface;
+}
 
 class Consumer {
   constructor(private readonly options: ConsumerOptions) {}
@@ -23,9 +27,7 @@ class Consumer {
 
         const attempt = msg?.properties?.headers?.["x-attempt"] || 1;
         if (this.options.isRetryEnabled) {
-          this.logger.info(
-            `[retry][attempt:${attempt}]: started msg reprocessing`
-          );
+          this.options.logger.info(`[retry][attempt:${attempt}]: reprocessing`);
         }
 
         const [err] = (await handler(async () => callback(msg))) as [
@@ -40,7 +42,7 @@ class Consumer {
         // 1. A mensagem é reprocessada apenas se o retry estiver habilitado
         if (!this.options.isRetryEnabled) {
           channel.nack(msg, false, false);
-          this.logger.error(`[discard]: ${err.message}`);
+          this.options.logger.error(`[discard]: ${err.message}`);
           return;
         }
 
@@ -50,23 +52,25 @@ class Consumer {
           !(await this.options.retryCheck(err))
         ) {
           channel.nack(msg, false, false);
-          this.logger.error(`[retry-check][discard]: ${err.message}`);
+          this.options.logger.error(`[retry-check][discard]: ${err.message}`);
           return;
         }
 
         // 3. O incremental de tentativas é controlado a partir de um limite máximo
         if (attempt >= (this.options.retryMaxAttempts || 1)) {
-          this.logger.error(`[discard][attempt:${attempt}]: ${err.message}`);
+          this.options.logger.error(
+            `[discard][attempt:${attempt}]: ${err.message}`
+          );
           channel.nack(msg, false, false);
           return;
         }
 
-        this.logger.error(
-          `[retry][attempt:${attempt}]: (enqueuing retry) ${err.message}`
-        );
-
         if (!this.options.retryExchangeName || !this.options.retryRoutingKey)
           return;
+
+        this.options.logger.error(
+          `[retry][attempt:${attempt}]: (requeue) ${err.message}`
+        );
 
         // 4. O envio do retry trata-se de uma republicação da mensagem
         await this.retry({
@@ -126,10 +130,5 @@ class Consumer {
     }
     return 1000 * 10 * attempt;
   }
-
-  get logger(): ClientLoggerInterface {
-    return this.options.logger;
-  }
 }
-
 export default Consumer;
