@@ -29,7 +29,7 @@ export type CreateConsumerOptions = {
   retryRoutingKey?: string;
   retryHeaders?: string[];
   retryDelay?: number | ((err: Error) => Promise<number>);
-  retryCheck?: (err: Error) => Promise<number>;
+  retryCheck?: (err: Error) => Promise<boolean>;
 };
 
 type CreateChannelConnectionOptions = {

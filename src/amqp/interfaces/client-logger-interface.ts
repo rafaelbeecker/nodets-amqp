@@ -15,5 +15,5 @@ export interface ConsumerOptions {
   retryHeaders?: string[];
   logger: ClientLoggerInterface;
   retryDelay?: number | ((err: Error) => Promise<number>);
-  retryCheck?: number | ((err: Error) => Promise<number>);
+  retryCheck?: (err: Error) => Promise<boolean>;
 }

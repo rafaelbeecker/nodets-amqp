@@ -49,6 +49,7 @@ class Consumer {
           typeof this.options.retryCheck === "function" &&
           !(await this.options.retryCheck(err))
         ) {
+          channel.nack(msg, false, false);
           this.logger.error(`[retry-check][discard]: ${err.message}`);
           return;
         }
