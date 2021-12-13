@@ -40,7 +40,11 @@ class Consumer {
         }
 
         // 1. A mensagem é reprocessada apenas se o retry estiver habilitado
-        if (!this.options.isRetryEnabled) {
+        if (
+          !this.options.isRetryEnabled || 
+          !this.options.retryExchangeName || 
+          !this.options.retryRoutingKey
+        ) {
           channel.nack(msg, false, false);
           this.options.logger.error(`[discard]: ${err.message}`);
           return;
@@ -63,10 +67,7 @@ class Consumer {
           );
           channel.nack(msg, false, false);
           return;
-        }
-
-        if (!this.options.retryExchangeName || !this.options.retryRoutingKey)
-          return;
+        }        
 
         this.options.logger.error(
           `[retry][attempt:${attempt}]: (requeue) ${err.message}`
