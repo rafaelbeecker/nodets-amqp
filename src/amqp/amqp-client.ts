@@ -29,33 +29,41 @@ export type CreateConsumerOptions = {
 };
 
 class AmqpClient {
+  public connection: Connection;
+  public channel: Channel;
+
   constructor(private readonly options: CreateClientOptions) {}
 
   async createProducer(options: CreateProducerOptions): Promise<Producer> {
+    if (!this.connection) {
+      await this.connect({ timeout: this.options.connectionTimeout });
+    }
     return new Producer({
       ...options,
-      channelConnection: await this.createChannelConnection({
-        timeout: this.options.connectionTimeout,
-      }),
+      channelConnection: {
+        channel: this.channel,
+        connection: this.connection,
+      },
     });
   }
 
   async createConsumer(options: CreateConsumerOptions): Promise<Consumer> {
+    if (!this.connection) {
+      await this.connect({ timeout: this.options.connectionTimeout });
+    }
     return new Consumer({
       ...options,
       logger: this.options.logger,
-      channelConnection: await this.createChannelConnection({
-        timeout: this.options.connectionTimeout,
-      }),
+      channelConnection: {
+        channel: this.channel,
+        connection: this.connection,
+      },
     });
   }
 
-  private async createChannelConnection(options: {
-    timeout: number;
-  }): Promise<ChannelConnection> {
-    const connection = await amqp.connect(this.options.amqpUrl, options);
-    const channel = await connection.createChannel();
-    return { channel, connection };
+  private async connect(options: { timeout: number }): Promise<void> {
+    this.connection = await amqp.connect(this.options.amqpUrl, options);
+    this.channel = await this.connection.createChannel();
   }
 }
 export default AmqpClient;
